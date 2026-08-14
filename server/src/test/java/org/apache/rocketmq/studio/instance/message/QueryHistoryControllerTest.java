@@ -42,9 +42,9 @@ class QueryHistoryControllerTest {
                 .thenReturn(PageResult.of(List.of(item), 11, 2, 10));
 
         mockMvc.perform(get("/api/query-history/messages")
-                        .param("clusterId", "instance-a")
-                        .param("queryType", "TOPIC")
-                        .param("search", "orders")
+                        .param("clusterId", " instance-a ")
+                        .param("queryType", " TOPIC ")
+                        .param("search", " orders ")
                         .param("page", "2")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
@@ -68,9 +68,25 @@ class QueryHistoryControllerTest {
                         .messageQueries(7).traceQueries(3)
                         .latestQueryAt(LocalDateTime.of(2026, 8, 5, 12, 0)).build());
 
-        mockMvc.perform(get("/api/query-history/summary").param("clusterId", "instance-a"))
+        mockMvc.perform(get("/api/query-history/summary").param("clusterId", " instance-a "))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.messageQueries").value(7))
                 .andExpect(jsonPath("$.data.traceQueries").value(3));
+
+        verify(queryHistoryService).summarize("instance-a");
+    }
+
+    @Test
+    void treatsBlankTraceHistoryFiltersAsAbsent() throws Exception {
+        when(queryHistoryService.listTraceQueries(null, null, 1, 20))
+                .thenReturn(PageResult.empty(1, 20));
+
+        mockMvc.perform(get("/api/query-history/traces")
+                        .param("clusterId", " ")
+                        .param("search", "  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isEmpty());
+
+        verify(queryHistoryService).listTraceQueries(null, null, 1, 20);
     }
 }
